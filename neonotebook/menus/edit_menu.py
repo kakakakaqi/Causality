@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import QFileDialog, QMessageBox
 from PySide6.QtGui import QKeySequence, QAction
 
+
 # the edit dropdown menu
 class EditMenu:
     def __init__(self, main_window, text_edit):
@@ -10,7 +11,7 @@ class EditMenu:
 
     def load(self, menu_bar):
         self.edit_menu = menu_bar.addMenu("&Edit")
-        
+
         undo_action = QAction("&Undo", self.main_window)
         undo_action.setShortcut(QKeySequence.StandardKey.Undo)
         undo_action.triggered.connect(self.text_edit.undo)
@@ -39,3 +40,4 @@ class EditMenu:
         self.edit_menu.addAction(paste_action)
 
         return self.edit_menu
+
