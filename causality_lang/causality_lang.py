@@ -294,8 +294,8 @@ def print_result(test_name, passed, details=""):
         print(f"    {format_str(details, LIGHTRED)}")
 
 
-def main():
-    """Run all syntax tests"""
+def health_check():
+    """Health test"""
     print_section("NODELANG SYNTAX TEST SUITE")
     print("Testing basic syntax features from syntax.md")
 
@@ -464,4 +464,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    health_check()
