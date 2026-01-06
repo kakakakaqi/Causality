@@ -53,10 +53,10 @@ def format_str(
         return txt
 
 
-class Nodelang_error(Exception): ...  # marker class for custom errors
+class Causality_error(Exception): ...  # marker class for custom errors
 
 
-def nodelang_exception(base_error: type[BaseException]) -> type[BaseException]:
+def causality_exception(base_error: type[BaseException]) -> type[BaseException]:
     # AI written
     """
     Create a Nodelang variant of any exception class that is safely subclassable.
@@ -65,16 +65,16 @@ def nodelang_exception(base_error: type[BaseException]) -> type[BaseException]:
         raise TypeError(f"Expected an exception class, got {base_error!r}")
 
     # Already in hierarchy - return as-is
-    if issubclass(base_error, Nodelang_error):
+    if issubclass(base_error, Causality_error):
         return base_error
 
     # Use Any for bases tuple to bypass strict type checker validation
-    bases: tuple[Any, ...] = (base_error, Nodelang_error)
+    bases: tuple[Any, ...] = (base_error, Causality_error)
 
     # CRITICAL EDGE CASES: Exception/BaseException create MRO conflicts
     if base_error in (Exception, BaseException):
         # Fall back to direct subclass of Nodelang_error
-        bases = (Nodelang_error,)
+        bases = (Causality_error,)
 
     # Cast the result to tell type checker we know it's correct
     return cast(
@@ -96,7 +96,7 @@ def handle_notelang_exception(func: Callable):
         try:
             func(self, *args, **kwdargs)
         except BaseException as e:
-            if isinstance(e, Nodelang_error):
+            if isinstance(e, Causality_error):
                 print(e)
             else:
                 raise e
@@ -112,12 +112,12 @@ class Node_manager:
     def add(self, node: Node):
         # if there is already that node
         if node.id in self._nodes.keys():
-            raise SyntaxWarning("Redefinition of a node")
+            raise Causality_error("Redefinition of a node")
         self._nodes[node.id] = node
 
     def get(self, id: str) -> Node:
         if id not in self._nodes.keys():
-            raise SyntaxError("Nonexistant node")
+            raise causality_exception(SyntaxError)("Nonexistant node")
         return self._nodes[id]
 
     def get_all(self) -> list[Node]:
@@ -199,8 +199,13 @@ class Graph:
         # annotation
         if line[0:1] == "#":
             return
+
+        idx = line.find(":")
+        idx0 = line.find("<")
+        idx1 = line.find(">")
+
         # definition
-        if (idx := line.find(":")) != -1:
+        if (idx < idx0 or idx0 == -1) and (idx < idx1 or idx1 == -1) and idx != -1:
             left = line[:idx].strip(" ")
             right = line[idx + 1 :].strip(" ")
 
@@ -218,7 +223,12 @@ class Graph:
             content = right.strip(" ")
 
             nd = Node(alias, name, content)
-            self.nodes.add(nd)
+            try:  # TODO: find a more elegant solution than ctrlcv-ing this
+                self.nodes.add(nd)
+            except Causality_error as e:
+                raise causality_exception(SyntaxWarning)(
+                    f"{format_str(str(e), LIGHTRED, bold=True)}\n{self.format_debug_info(debug_info)}"
+                )
 
             # print(f"alias: {alias}")
             # print(f"content: {content}")
@@ -226,10 +236,8 @@ class Graph:
             return
 
         # elaborations
-        idx0 = line.find("<")
-        idx1 = line.find(">")
         # if there is not an occurance of > or if > is before <, then it's an elaboration
-        if idx0 != -1 and idx1 == -1 or idx1 < idx0:
+        if (idx0 != -1 and idx1 == -1) or idx1 < idx0:
             # elaboration
             left = line[:idx0].strip(" ")
             right = line[idx0 + 1 :].strip(" ")
@@ -246,8 +254,13 @@ class Graph:
                 alias = content
 
             new = Node(alias, alias, content)
-            nd = self.nodes.get(left)
-            nd.children.add(new)
+            try:
+                nd = self.nodes.get(left)
+                nd.children.add(new)
+            except Causality_error as e:
+                raise causality_exception(SyntaxWarning)(
+                    f"{format_str(str(e), LIGHTRED, bold=True)}\n{self.format_debug_info(debug_info)}"
+                )
             return
 
         # logical connection
@@ -266,10 +279,15 @@ class Graph:
                     nd = Node(txt, txt, txt)
                 dests.append(nd)
 
-            origin.connections.add(connection, dests)
+            try:
+                origin.connections.add(connection, dests)
+            except Causality_error as e:
+                raise causality_exception(SyntaxWarning)(
+                    f"{format_str(str(e), LIGHTRED, bold=True)}\n{self.format_debug_info(debug_info)}"
+                )
             return
 
-        raise nodelang_exception(SyntaxError)(
+        raise causality_exception(SyntaxError)(
             f"{format_str('Invalid syntax', LIGHTRED, bold=True)}\n{self.format_debug_info(debug_info)}"
         )
 

@@ -31,6 +31,8 @@ refer to definition via ||
 
 ... (): ... |vocab word|
 
+aliases and the actual name must be globally unique
+
 ## elaborations
 
 defining sub nodes which is a child (it points to) another node
