@@ -70,3 +70,30 @@ elif <> present
   connection
 elif < present
   subnode
+
+## conventions
+
+everything should be meaningful in the syntax, including aliases
+and example to illustrait this would be
+```
+# bad example
+
+colonial system (col_sys) : Methods for governing conquered territories
+
+col_sys < (direct) Direct rule: European officials replace local elites
+col_sys < (indirect) Indirect rule: Rule through local collaborators
+col_sys < (assim) Assimilation: Transform into Western model
+col_sys < (assoc) Association: Preserve local traditions
+```
+
+```
+# good example
+
+colonial system (col_sys) : Methods for governing conquered territories
+
+col_sys < (methods of rulerish) 1. Direct rule: European officials replace local elites\n2. Indirect rule: Rule through local collaborators\n
+col_sys < (assimilation) Transform into Western model
+col_sys < (association) Preserve local traditions
+```
+
+comparing the bad example to the good example. the good example was able to use the 'aliases' as effective labels, as questions. the bad example had aliases which couldn't be used to extend the functionaly of the notes.

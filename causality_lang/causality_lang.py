@@ -117,7 +117,7 @@ class Node_manager:
 
     def get(self, id: str) -> Node:
         if id not in self._nodes.keys():
-            raise causality_exception(SyntaxError)("Nonexistant node")
+            raise causality_exception(RuntimeError)("Nonexistant node")
         return self._nodes[id]
 
     def get_all(self) -> list[Node]:
@@ -125,8 +125,8 @@ class Node_manager:
 
     def find_node(self, id: str) -> Node:
         """BFS for node with an alias of id"""
-        nd = self.get(id)
-        frontier: list[Node] = [nd]
+        # nd = self.get(id)
+        frontier: list[Node] = list(self._nodes.values())
 
         while len(frontier):
             node = frontier.pop(0)
@@ -134,7 +134,7 @@ class Node_manager:
                 return node
             frontier.extend(node.children.get_all())
 
-        raise RuntimeError("Not a thing")
+        raise causality_exception(RuntimeError)("Not a thing")
 
 
 class Connection_manager:
@@ -173,26 +173,27 @@ class Graph:
         return ret
 
     def parse(self, code: str):
-        lines = [line.strip() for line in code.split("\n") if line.strip() != ""]
-        for idx, line in enumerate(lines):
+        alllines = [line.strip() for line in code.split("\n")]
+        lines = [(idx, line) for idx, line in enumerate(alllines) if line != ""]
+        for idx, line in lines:
             # DEBUG INFO
             # context
             context_size = 3
             context = "".join(
                 [
                     # |line#| line
-                    format_str(f"\n|{j + 1}| {lines[j]}", underline=(idx == j))
+                    format_str(f"\n|{j + 1}| {alllines[j]}", underline=(idx == j))
                     # j - context size -> j + context size
                     for j in range(idx - context_size, idx + context_size + 1)
                     # if j in range
-                    if j >= 0 and j < len(lines)
+                    if j >= 0 and j < len(alllines)
                 ]
             )
 
             debug_info = {"context": context}
 
             # parsing
-            self.parse_line(line, debug_info)
+            self.parse_line(line.encode().decode("unicode_escape"), debug_info)
 
     @handle_notelang_exception
     def parse_line(self, line: str, debug_info: dict[str, Any]):
@@ -215,7 +216,11 @@ class Graph:
             else:
                 alias = ""
             alias.strip(" ")
-            name = left[: left.rfind("(")].strip(" ")
+            name = (
+                left[: left.rfind("(")].strip(" ")
+                if left.rfind("(") != -1
+                else left.strip(" ")
+            )
 
             if not len(alias):
                 alias = name
@@ -269,7 +274,12 @@ class Graph:
             connection = line[idx0 + 1 : idx1].strip(" ")
             right = line[idx1 + 1 :].strip(" ")
 
-            origin = self.nodes.find_node(left)
+            try:
+                origin = self.nodes.find_node(left)
+            except Causality_error as e:
+                raise causality_exception(SyntaxWarning)(
+                    f"{format_str(str(e), LIGHTRED, bold=True)}\n{self.format_debug_info(debug_info)}"
+                )
             dests = []  # TODO: no append
             for txt in right.split("&"):
                 txt.strip(" ")
@@ -277,6 +287,7 @@ class Graph:
                     nd = self.nodes.find_node(txt)
                 except:
                     nd = Node(txt, txt, txt)
+                    self.nodes.add(nd)
                 dests.append(nd)
 
             try:
